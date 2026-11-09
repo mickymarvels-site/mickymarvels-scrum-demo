@@ -64,3 +64,11 @@ Candidates, clients and placements start empty. Starter actions are planning pro
 ### Verification
 
 Run `npm test`, `npm run build`, and `node --check staffing/dashboard.js`. Backend tests use isolated in-memory storage and disposable test credentials. They verify fail-closed configuration, authentication, origin checks, invalid data rejection, session expiration, password rotation and stale-write protection. They do not write to hosted Netlify data. Verify hosted login and persistence after configuring the production secret.
+
+### Cameroon Team scenario
+
+The separate **Cameroon Team** tab defaults to $45/hour client billing, $10/hour worker pay, 160 billable hours per worker per month, and one worker. These are scenario inputs only; no worker records are created. Additional monthly costs are team-wide and remain unknown until entered; only an explicit zero removes additional costs from contribution. Gross spread is distinct from net profit. Confirm Cameroon employment/contracting arrangements and offshore client approval.
+
+Edit inputs and select **Save changes** to persist through the existing authenticated Function/Blobs workspace. Missing Cameroon assumption fields are merged on load without replacing existing values (including blanks or zeros), records, or US model assumptions. They are included in the next explicit save; loading alone does not write to storage. Existing conflict detection still protects concurrent saves.
+
+`npm test` includes default calculation, team scaling, unknown-versus-zero cost, loss/zero-revenue, immutable legacy-merge, and authenticated save/reload compatibility checks. Tests use isolated fixtures and never modify live workspace records.

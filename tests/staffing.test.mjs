@@ -10,3 +10,18 @@ test('rejects unsigned access, bad password, forged origin and forged cookie',as
 test('owner session saves and reloads records; stale updates cannot overwrite',async()=>{const h=fixture(),cookie=await login(h);assert.match(cookie,/^__Host-mm_staffing=/);let r=await h(request('PUT',{data,etag:null},cookie));assert.equal(r.status,200);assert.equal((await r.json()).etag,'1');r=await h(request('GET',undefined,cookie));assert.deepEqual((await r.json()).data,data);assert.equal((await h(request('PUT',{data,etag:null},cookie))).status,409);assert.equal((await h(request('PUT',{data,etag:'1'},cookie))).status,200);assert.equal((await h(request('PUT',{data,etag:'1'},cookie))).status,409)});
 test('rejects invalid data and expired sessions',async()=>{const h=fixture(),cookie=await login(h);assert.equal((await h(request('PUT',{data:{...data,candidates:[{id:'x',name:123}]},etag:null},cookie))).status,400);const expired=createHandler({password:()=>password,now:()=>Date.now()+9*3600000,getStore:()=>{throw Error('should never access store')}});assert.equal((await expired(request('GET',undefined,cookie))).status,401)});
 test('cookie security attributes and password rotation',async()=>{const h=fixture();const r=await h(request('POST',{password},'','?action=login'));const c=r.headers.get('set-cookie');for(const a of ['HttpOnly','Secure','SameSite=Strict','Path=/'])assert.ok(c.includes(a));const rotated=createHandler({password:()=>password+'rotated',getStore:()=>{throw Error('unreachable')}});assert.equal((await rotated(request('GET',undefined,c.split(';')[0]))).status,401)});
+
+test('legacy workspace and Cameroon additions round-trip through authenticated storage without record loss',async()=>{
+ const {mergeCameroonDefaults}=await import('../staffing/scenarios.mjs');
+ const h=fixture(),cookie=await login(h);
+ const legacy={candidates:[{id:'c1',name:'Existing candidate'}],clients:[{id:'cl1',name:'Existing client'}],placements:[{id:'p1',candidate:'c1',client:'cl1'}],tasks:[{id:'t1',name:'Existing task'}],assumptions:{bill:'80',pay:'40',overhead:'',headcount:'2'}};
+ assert.equal((await h(request('PUT',{data:legacy,etag:null},cookie))).status,200);
+ const loaded=await (await h(request('GET',undefined,cookie))).json();
+ const merged=mergeCameroonDefaults(loaded.data);merged.assumptions.camBill='48';merged.assumptions.camCosts='0';
+ assert.equal((await h(request('PUT',{data:merged,etag:loaded.etag},cookie))).status,200);
+ const reloaded=await (await h(request('GET',undefined,cookie))).json();
+ assert.deepEqual(reloaded.data,merged);
+ for(const key of ['candidates','clients','placements','tasks'])assert.deepEqual(reloaded.data[key],legacy[key]);
+ for(const [key,value] of Object.entries(legacy.assumptions))assert.equal(reloaded.data.assumptions[key],value);
+ assert.equal((await h(request('PUT',{data:legacy,etag:loaded.etag},cookie))).status,409);
+});
