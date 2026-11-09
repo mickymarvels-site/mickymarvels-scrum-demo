@@ -2,3 +2,7 @@
 .netlify/
 .env
 .env.*
+node_modules/
+public/
+.openai/
+.sites-runtime/

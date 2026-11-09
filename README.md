@@ -40,3 +40,27 @@ Before a future production release, supply approved business contact details and
 ## Verification
 
 Source checks verify internal section links, local asset references, unique element IDs, required form fields, and Netlify form configuration. Browser rendering and hosted form processing remain unverified because browser access and Netlify deployment access were unavailable.
+
+## Native staffing workspace
+
+`/staffing/` is a first-party dashboard on this Netlify site. It has no ChatGPT hosting or sign-in dependency. The public home page includes a Staffing Workspace button in its footer.
+
+### One-time owner setup
+
+In the Netlify project for **mickydemo**, open **Project configuration → Environment variables**. Add **STAFFING_ADMIN_PASSWORD**, a unique password at least 20 characters long, to the **Functions** scope (or all scopes), in the production context. Keep it secret. Do not put the password in GitHub, source code, a build command, or chat. Redeploy the project after setting it. Use that password at `/staffing/`.
+
+If the variable is absent or too short, the backend stays locked and returns setup required. There is no default password or public registration. A Netlify project administrator can rotate this variable and redeploy; that invalidates existing owner sessions. This version is a single-owner workspace, not a multi-user permission system.
+
+### Hosting and storage
+
+Netlify installs the locked dependency and runs `npm run build`. Only `public/` is published. Server source, tests, package metadata and docs are excluded from the public directory. Netlify Functions runs `staffing.mjs`; the private workspace is stored in the site-wide `mm-staffing-owner-workspace` Netlify Blobs store. No extra storage credentials are needed inside Netlify Functions. Every data read and write requires the owner session. Blobs persists across redeploys; deleting the store/project deletes that persistence. Hosting and storage usage follow the project's Netlify plan.
+
+Login creates an eight-hour Secure, HttpOnly, SameSite=Strict cookie. Mutations check request origin. The function is rate-limited to 30 requests per minute per IP/domain. The entire workspace is one versioned document, with conditional writes to prevent a stale tab overwriting a newer save. This is suitable for an initial owner-operated team; evaluate a relational database and individual identities for concurrent team growth.
+
+Use **Apply changes** to update a record on screen and **Save changes** to persist it. Unsaved changes are held only in page memory, not browser storage. Export JSON backups regularly. Export includes personal and business data: keep backups private. JSON export is a backup/readable snapshot; no import UI is included in this version.
+
+Candidates, clients and placements start empty. Starter actions are planning prompts, not assertions of completed work. Rate assumptions are explicitly illustrative. Blank cost inputs produce Unknown margins. All calculations are in USD and are planning estimates, not payroll execution or classification decisions. Local employment/contracting options and offshore client approval are recorded separately from US model estimates.
+
+### Verification
+
+Run `npm test`, `npm run build`, and `node --check staffing/dashboard.js`. Backend tests use isolated in-memory storage and disposable test credentials. They verify fail-closed configuration, authentication, origin checks, invalid data rejection, session expiration, password rotation and stale-write protection. They do not write to hosted Netlify data. Verify hosted login and persistence after configuring the production secret.
