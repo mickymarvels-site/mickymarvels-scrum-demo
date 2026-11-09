@@ -130,3 +130,5 @@ Sources checked November 9, 2026: [2026 IRS brackets/standard deductions](https:
 
 ### Visible after-tax take-home
 The Micky company summary has a prominent after-tax panel with monthly and biweekly team totals, a monthly per-worker amount, and a USD equivalent for Cameroon. The panel shows before-tax amount minus owner reserve equals after-tax amount, and refreshes with scenario edits. A shortcut near the top of Worker scenarios jumps to the summary. Incomplete expenses produce a clearly provisional after-tax estimate; a missing owner reserve cannot be labeled or displayed as an after-tax number. Existing saved assumptions and tax methods are unchanged.
+
+The after-tax panel includes dedicated read-only USD conversion fields for monthly team take-home, biweekly team take-home, and monthly per-worker take-home. Values use the same saved XAF-per-USD rate shown alongside them and update automatically. Conversion divides the post-reserve amount by the rate; unknown/invalid rates remain unknown and provisional expense status is retained. No new persisted assumptions are needed.

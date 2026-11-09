@@ -17,3 +17,12 @@ test('missing owner reserve never presents a pre-tax subtotal as after-tax take-
  assert.equal(display.monthly,null);assert.equal(display.biweekly,null);assert.equal(display.monthlyUsd,null);assert.match(display.message,/Automatic federal estimate/);
  assert.equal(companyTakeHomeDisplay({isUS:true,beforeTax:5000,tax:0,missing:[]},0,null).monthly,5000);
 });
+
+test('USD fields convert net take-home, annualize biweekly correctly, and allocate per worker',()=>{
+ const result={isUS:false,beforeTax:3300000,tax:900000,missing:[]},display=companyTakeHomeDisplay(result,2,600);
+ assert.equal(display.monthlyUsd,4000);assert.equal(display.biweeklyUsd,4000*12/26);assert.equal(display.perWorkerUsd,2000);
+ assert.equal(companyTakeHomeDisplay(result,2,500).monthlyUsd,4800);
+ for(const rate of [null,0,-1,NaN,Infinity]){const unknown=companyTakeHomeDisplay(result,2,rate);assert.equal(unknown.monthlyUsd,null);assert.equal(unknown.biweeklyUsd,null);assert.equal(unknown.perWorkerUsd,null);}
+ const us=companyTakeHomeDisplay({...result,isUS:true},2,null);assert.equal(us.monthlyUsd,2400000);assert.equal(us.perWorkerUsd,1200000);
+ assert.equal(companyTakeHomeDisplay(result,0,600).perWorkerUsd,null);
+});
