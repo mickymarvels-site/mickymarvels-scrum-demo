@@ -24,9 +24,15 @@ export function calculateCameroon(a) {
   const revenue = baseKnown ? bill * hours * workers : null;
   const workerPay = baseKnown ? pay * hours * workers : null;
   const grossSpread = baseKnown ? revenue - workerPay : null;
+  // Annualize monthly hours, then divide across 26 two-week periods.
+  const biweekly = value => value === null ? null : value*12/26;
+  const grossSpreadPerWorker=ratesKnown && hours !== null ? (bill-pay)*hours : null;
   return {revenue,workerPay,monthlyPayPerWorker,
+    biweeklyHours:biweekly(hours),biweeklyPayPerWorker:biweekly(monthlyPayPerWorker),
+    biweeklyTeamPay:biweekly(totalPay),biweeklyGrossSpreadPerWorker:biweekly(grossSpreadPerWorker),
+    biweeklyTeamGrossSpread:biweekly(grossSpread),
     revenuePerWorker:bill !== null && hours !== null ? bill*hours : null,
-    grossSpreadPerWorker:ratesKnown && hours !== null ? (bill-pay)*hours : null,exchangeRate:fxKnown?exchangeRate:null,
+    grossSpreadPerWorker,exchangeRate:fxKnown?exchangeRate:null,
     hourlyPayXaf:fxKnown && pay !== null ? pay*exchangeRate : null,
     monthlyPayPerWorkerXaf:fxKnown && monthlyPayPerWorker !== null ? monthlyPayPerWorker*exchangeRate : null,
     monthlyTeamPayXaf:fxKnown && totalPay !== null ? totalPay*exchangeRate : null,hourlySpread:ratesKnown ? bill-pay : null,grossSpread,

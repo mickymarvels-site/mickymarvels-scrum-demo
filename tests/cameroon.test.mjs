@@ -79,3 +79,22 @@ test('worker switch uses independent saved rates, hours, costs and currencies',(
  assert.deepEqual(mergeCameroonDefaults(workspace),workspace);
  assert.ok(validData({...workspace,candidates:[],clients:[],placements:[],tasks:[]}));
 });
+
+test('biweekly estimates reconcile to monthly estimates over a full year for both locations',()=>{
+ const a=mergeCameroonDefaults({assumptions:{camUsdXaf:'600',camWorkers:'3',usWorkers:'2'}}).assumptions;
+ for(const region of ['0','1']){
+  const c=calculateCameroon(workerScenario({...a,workerUs:region}).assumptions);
+  for(const [biweekly,monthly] of [['biweeklyPayPerWorker','monthlyPayPerWorker'],['biweeklyTeamPay','workerPay'],['biweeklyGrossSpreadPerWorker','grossSpreadPerWorker'],['biweeklyTeamGrossSpread','grossSpread']]){
+   assert.ok(Math.abs(c[biweekly]*26-c[monthly]*12)<1e-8);
+  }
+  assert.ok(Math.abs(c.biweeklyHours-160*12/26)<1e-10);
+  assert.equal(c.biweeklyPayPerWorker.toFixed(2),region==='1'?'3323.08':'738.46');
+ }
+});
+test('biweekly pay preserves unknown inputs, explicit zero and negative spread',()=>{
+ assert.equal(calculateCameroon({...cameroonDefaults,camPay:''}).biweeklyPayPerWorker,null);
+ assert.equal(calculateCameroon({...cameroonDefaults,camHours:''}).biweeklyTeamPay,null);
+ assert.equal(calculateCameroon({...cameroonDefaults,camPay:'0'}).biweeklyPayPerWorker,0);
+ assert.equal(calculateCameroon({...cameroonDefaults,camWorkers:'0'}).biweeklyTeamPay,0);
+ assert.ok(calculateCameroon({...cameroonDefaults,camPay:'50'}).biweeklyGrossSpreadPerWorker<0);
+});
