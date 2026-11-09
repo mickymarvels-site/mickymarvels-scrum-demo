@@ -2,7 +2,8 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 const password='local-test-password-not-a-real-secret';
 const origin='https://example.test';
 const request=(method='GET',body,cookie='',action='',otherOrigin=origin)=>new Request(origin+'/.netlify/functions/staffing'+action,{method,headers:{origin:otherOrigin,'content-type':'application/json',cookie},...(body===undefined?{}:{body:JSON.stringify(body)})});
-function fixture(){let value=null,version=0;const store={getWithMetadata:async()=>value?{data:value,etag:String(version)}:null,setJSON:async(k,d,options)=>{if((options.onlyIfNew&&value)||options.onlyIfMatch&&options.onlyIfMatch!==String(version))return {modified:false};value=d;return {modified:true,etag:String(++version)}}};return createHandler({password:()=>password,getStore:()=>store})}
+function fixture(){const values=new Map();const store={getWithMetadata:async key=>values.get(key)||null,setJSON:async(key,data,options={})=>{const current=values.get(key);if((options.onlyIfNew&&current)||options.onlyIfMatch&&options.onlyIfMatch!==current?.etag)return {modified:false};const etag=String(Number(current?.etag||0)+1);values.set(key,{data:structuredClone(data),etag});return {modified:true,etag}}};return createHandler({password:()=>password,getStore:()=>store})}
+
 const data={candidates:[],clients:[],placements:[],tasks:[],assumptions:{bill:'65'}};
 async function login(handler){const r=await handler(request('POST',{password},'','?action=login'));assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0]}
 test('unconfigured workspace fails closed',async()=>{const h=createHandler({password:()=>'',getStore:()=>{throw Error('should never access store')}});assert.equal((await h(request())).status,503)});
@@ -66,4 +67,21 @@ test('linked candidate profiles and separate financial assumptions save across d
  assert.equal((await h(request('PUT',{data:saved,etag:first.etag},cookie))).status,409);
  const invalid={...second.data,candidateProfiles:{...second.data.candidateProfiles,b:{...sibling,placementId:'p'}}};
  assert.equal((await h(request('PUT',{data:invalid,etag:second.etag},cookie))).status,400);
+});
+
+test('stored revisions are archived before overwrite and missing/corrupt workspaces are never silently reset',async()=>{
+ const rows=new Map();let archiveFailure=false;
+ const store={getWithMetadata:async key=>rows.get(key)||null,setJSON:async(key,value,options={})=>{
+  if(key.startsWith('workspace-history/')&&archiveFailure)throw new Error('Archive unavailable');
+  const previous=rows.get(key);if((options.onlyIfNew&&previous)||options.onlyIfMatch&&options.onlyIfMatch!==previous?.etag)return {modified:false};
+  const etag=String(Number(previous?.etag||0)+1);rows.set(key,{data:structuredClone(value),etag});return {modified:true,etag};
+ }};
+ const h=createHandler({password:()=>password,getStore:()=>store}),cookie=await login(h),first={...data,candidates:[{id:'a',name:'Keep this record'}]};
+ assert.equal((await h(request('PUT',{data:first,etag:null},cookie))).status,200);
+ const changed={...first,candidates:[{id:'a',name:'Edited record'}]};
+ assert.equal((await h(request('PUT',{data:changed,etag:'1'},cookie))).status,200);
+ const archives=[...rows.entries()].filter(([key])=>key.startsWith('workspace-history/'));assert.equal(archives.length,1);assert.deepEqual(archives[0][1].data.data,first);
+ archiveFailure=true;assert.equal((await h(request('PUT',{data:first,etag:'2'},cookie))).status,500);assert.deepEqual(rows.get('workspace-v1').data,changed);
+ rows.set('workspace-v1',{data:{broken:true},etag:'3'});assert.equal((await h(request('GET',undefined,cookie))).status,503);assert.equal((await h(request('PUT',{data:first,etag:'3'},cookie))).status,503);
+ rows.delete('workspace-v1');assert.equal((await h(request('PUT',{data:first,etag:'3'},cookie))).status,409);assert.equal(rows.has('workspace-v1'),false);
 });
