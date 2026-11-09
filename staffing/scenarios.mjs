@@ -1,3 +1,4 @@
+import {ownerTaxDefaults} from './owner-tax.mjs';
 import {payrollDefaults} from './payroll.mjs';
 // Flat string assumptions share the existing authenticated workspace save contract.
 export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:'',camUsdXaf:'',camCompanyTax:''});
@@ -9,9 +10,10 @@ export function workerScenario(a){
 export function mergeCameroonDefaults(workspace) {
   const assumptions = {...workspace.assumptions};
   if (!Object.hasOwn(assumptions,'camHealthMode') && ['camHealthWorkerXaf','camHealthCompanyXaf'].some(key=>typeof assumptions[key]==='string'&&assumptions[key]!=='')) assumptions.camHealthMode='1';
+  for(const prefix of ['cam','us'])if(!Object.hasOwn(assumptions,prefix+'OwnerMode')&&typeof assumptions[prefix+'CompanyTax']==='string'&&assumptions[prefix+'CompanyTax']!=='')assumptions[prefix+'OwnerMode']='1';
   // Preserve existing manual totals, including an explicit zero, on older workspaces.
   if (!Object.hasOwn(assumptions,'camTaxMode') && typeof assumptions.camTaxXaf==='string' && assumptions.camTaxXaf!=='') assumptions.camTaxMode='1';
-  for (const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults,...payrollDefaults})) {
+  for (const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults,...payrollDefaults,...ownerTaxDefaults})) {
     if (!Object.hasOwn(assumptions,key)) assumptions[key] = value;
   }
   return {...workspace,assumptions};

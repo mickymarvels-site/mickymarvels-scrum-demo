@@ -44,3 +44,11 @@ test('custom insurance quote and share persist through authenticated storage',as
  const loaded=await(await h(request('GET',undefined,cookie))).json();assert.deepEqual(loaded.data,saved);
  assert.equal((await h(request('PUT',{data:{...saved,assumptions:{...saved.assumptions,camHealthEmployerShare:'101'}},etag:loaded.etag},cookie))).status,400);
 });
+
+test('owner tax election, mode and income assumptions persist with all legacy records',async()=>{
+ const {mergeCameroonDefaults}=await import('../staffing/scenarios.mjs');
+ const h=fixture(),cookie=await login(h),saved=mergeCameroonDefaults({...data,candidates:[{id:'existing',name:'Existing'}],assumptions:{ownerTreatment:'0',ownerYear:'2026',ownerFiling:'1',ownerWages:'50000',ownerSpouseWages:'25000',ownerOtherIncome:'10000',camOwnerMode:'0',usOwnerMode:'1',usCompanyTax:'500'}});
+ assert.equal((await h(request('PUT',{data:saved,etag:null},cookie))).status,200);
+ assert.deepEqual((await(await h(request('GET',undefined,cookie))).json()).data,saved);
+ assert.equal((await h(request('PUT',{data:{...saved,assumptions:{...saved.assumptions,ownerTreatment:'unknown'}},etag:'1'},cookie))).status,400);
+});

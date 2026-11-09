@@ -1,3 +1,4 @@
+import {ownerTaxDefaults} from '../staffing/owner-tax.mjs';
 import {payrollDefaults} from '../staffing/payroll.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -43,7 +44,7 @@ test('legacy default merge is immutable, preserves records and all existing assu
 });
 test('partial saved Cameroon scenario retains explicit zero and intentionally blank assumptions',()=>{
  const merged=mergeCameroonDefaults({assumptions:{camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'}});
- assert.deepEqual(merged.assumptions,{...cameroonDefaults,...workerDefaults,...payrollDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
+ assert.deepEqual(merged.assumptions,{...cameroonDefaults,...workerDefaults,...payrollDefaults,...ownerTaxDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
 });
 
 test('USD to XAF pay converts hourly, per worker and whole-team amounts without changing USD estimates',()=>{

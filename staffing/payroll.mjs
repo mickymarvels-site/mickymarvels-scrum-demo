@@ -9,6 +9,8 @@ export function validAssumptions(a){
   if(typeof v!=='string'||v.length>=100)return false;
   if(['usState','usOverrideState'].includes(key))return v===''||Object.hasOwn(stateTaxData,v);
   if(['usFiling','usOverrideFiling'].includes(key))return v===''||FILING_STATUSES.some(([id])=>id===v);
+  if(['ownerTreatment','ownerFiling'].includes(key))return ['0','1','2','3'].includes(v);
+  if(['camOwnerMode','usOwnerMode'].includes(key))return ['0','1'].includes(v);
   if(key==='camHealthEmployerShare')return v===''||(v.trim()!==''&&Number.isFinite(+v)&&+v>=0&&+v<=100);
   if(['camTaxMode','camHealthMode'].includes(key))return ['0','1'].includes(v);
   if(key==='camFamilyRate')return ['7','5.65','3.7',''].includes(v);

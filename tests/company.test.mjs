@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {calculateCompanyTakeHome} from '../staffing/company.mjs';
 import {mergeCameroonDefaults} from '../staffing/scenarios.mjs';
 import {validAssumptions} from '../staffing/payroll.mjs';
-const inputs=overrides=>mergeCameroonDefaults({assumptions:{camUsdXaf:'600',camRiskRate:'1.75',camCosts:'100',camCompanyTax:'50',camHealthPremiumXaf:'75000',camHealthEmployerShare:'60',...overrides}}).assumptions;
+const inputs=overrides=>mergeCameroonDefaults({assumptions:{camOwnerMode:'1',usOwnerMode:'1',camUsdXaf:'600',camRiskRate:'1.75',camCosts:'100',camCompanyTax:'50',camHealthPremiumXaf:'75000',camHealthEmployerShare:'60',...overrides}}).assumptions;
 test('Micky Cameroon cash flow deducts gross wages and each company expense once',()=>{
  const p=calculateCompanyTakeHome(inputs({}));
  assert.equal(p.revenue,4320000);assert.equal(p.workerPay,960000);assert.equal(p.employer,124800);assert.equal(p.insurance,45000);assert.equal(p.costs,60000);assert.equal(p.tax,30000);assert.equal(p.net,3100200);assert.equal(p.perWorker,p.net);
