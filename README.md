@@ -74,3 +74,9 @@ Edit inputs and select **Save changes** to persist through the existing authenti
 `npm test` includes default calculation, team scaling, unknown-versus-zero cost, loss/zero-revenue, immutable legacy-merge, and authenticated save/reload compatibility checks. Tests use isolated fixtures and never modify live workspace records.
 
 Cameroon Team also shows hourly, monthly per-worker, and monthly whole-team pay in Central African CFA francs (XAF). Enter **XAF per 1 USD**, then Save changes. The rate starts unknown, is stored with scenario assumptions, and is not a live market quote. Converted figures are rounded to whole CFA francs for display; transfer fees are excluded. Existing USD margin calculations are unchanged.
+
+### Worker location switch
+
+**Worker scenarios** replaces the Cameroon-only tab. Choose **US Worker** ($65/hour billing, $45/hour pay) or **Cameroon Worker** ($45/hour billing, $10/hour pay). Rates, hours, worker count and unknown additional costs persist independently for each location; switching never resets edits. The selected location and both sets of assumptions use the existing Save changes action. Older workspaces keep their Cameroon values and receive missing US defaults. Existing W-2/1099 assumptions remain separate.
+
+Client billing and rate inputs remain in USD. Results show US worker pay/spread in USD and Cameroon pay/spread in XAF using the saved manual exchange rate, with per-worker gross spread also shown in USD. At 160 hours, per-worker monthly gross spread is $3,200 (US) or $5,600 (Cameroon), before other costs and taxes.

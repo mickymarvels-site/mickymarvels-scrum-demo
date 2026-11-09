@@ -1,8 +1,13 @@
 // Flat string assumptions share the existing authenticated workspace save contract.
 export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:'',camUsdXaf:''});
+export const workerDefaults=Object.freeze({workerUs:'0',usBill:'65',usPay:'45',usHours:'160',usWorkers:'1',usCosts:''});
+export function workerScenario(a){
+  const isUS=a.workerUs==='1';
+  return {isUS,assumptions:isUS?{camBill:a.usBill,camPay:a.usPay,camHours:a.usHours,camWorkers:a.usWorkers,camCosts:a.usCosts,camUsdXaf:a.camUsdXaf}:a};
+}
 export function mergeCameroonDefaults(workspace) {
   const assumptions = {...workspace.assumptions};
-  for (const [key,value] of Object.entries(cameroonDefaults)) {
+  for (const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults})) {
     if (!Object.hasOwn(assumptions,key)) assumptions[key] = value;
   }
   return {...workspace,assumptions};
@@ -19,7 +24,9 @@ export function calculateCameroon(a) {
   const revenue = baseKnown ? bill * hours * workers : null;
   const workerPay = baseKnown ? pay * hours * workers : null;
   const grossSpread = baseKnown ? revenue - workerPay : null;
-  return {revenue,workerPay,exchangeRate:fxKnown?exchangeRate:null,
+  return {revenue,workerPay,monthlyPayPerWorker,
+    revenuePerWorker:bill !== null && hours !== null ? bill*hours : null,
+    grossSpreadPerWorker:ratesKnown && hours !== null ? (bill-pay)*hours : null,exchangeRate:fxKnown?exchangeRate:null,
     hourlyPayXaf:fxKnown && pay !== null ? pay*exchangeRate : null,
     monthlyPayPerWorkerXaf:fxKnown && monthlyPayPerWorker !== null ? monthlyPayPerWorker*exchangeRate : null,
     monthlyTeamPayXaf:fxKnown && totalPay !== null ? totalPay*exchangeRate : null,hourlySpread:ratesKnown ? bill-pay : null,grossSpread,

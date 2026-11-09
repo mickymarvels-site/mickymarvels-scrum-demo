@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cameroonDefaults,calculateCameroon,mergeCameroonDefaults} from '../staffing/scenarios.mjs';
+import {cameroonDefaults,workerDefaults,workerScenario,calculateCameroon,mergeCameroonDefaults} from '../staffing/scenarios.mjs';
 import {validData} from '../lib/staffing-service.mjs';
 test('one worker default scenario computes the requested gross spread, leaving costs unknown',()=>{
  const c=calculateCameroon(cameroonDefaults);
@@ -37,12 +37,12 @@ test('legacy default merge is immutable, preserves records and all existing assu
  assert.deepEqual(legacy,before);
  for(const key of ['candidates','clients','placements','tasks'])assert.deepEqual(merged[key],legacy[key]);
  for(const [key,value] of Object.entries(legacy.assumptions))assert.equal(merged.assumptions[key],value);
- for(const [key,value] of Object.entries(cameroonDefaults))assert.equal(merged.assumptions[key],value);
+ for(const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults}))assert.equal(merged.assumptions[key],value);
  assert.deepEqual(mergeCameroonDefaults(merged),merged);assert.ok(validData(merged));
 });
 test('partial saved Cameroon scenario retains explicit zero and intentionally blank assumptions',()=>{
  const merged=mergeCameroonDefaults({assumptions:{camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'}});
- assert.deepEqual(merged.assumptions,{...cameroonDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
+ assert.deepEqual(merged.assumptions,{...cameroonDefaults,...workerDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
 });
 
 test('USD to XAF pay converts hourly, per worker and whole-team amounts without changing USD estimates',()=>{
@@ -64,4 +64,18 @@ test('unknown and invalid exchange rates cannot imply zero converted pay',()=>{
  const legacy=mergeCameroonDefaults({assumptions:{camPay:'12'}});
  assert.equal(legacy.assumptions.camUsdXaf,'');assert.equal(legacy.assumptions.camPay,'12');
  assert.ok(validData({...legacy,candidates:[],clients:[],placements:[],tasks:[]}));
+});
+
+test('worker switch uses independent saved rates, hours, costs and currencies',()=>{
+ const workspace=mergeCameroonDefaults({assumptions:{camUsdXaf:'600'}}),a=workspace.assumptions;
+ let selected=workerScenario(a),c=calculateCameroon(selected.assumptions);
+ assert.equal(selected.isUS,false);assert.equal(c.grossSpreadPerWorker,5600);assert.equal(c.monthlyPayPerWorker,1600);
+ a.workerUs='1';selected=workerScenario(a);c=calculateCameroon(selected.assumptions);
+ assert.equal(selected.isUS,true);assert.equal(c.revenuePerWorker,10400);assert.equal(c.monthlyPayPerWorker,7200);assert.equal(c.hourlySpread,20);assert.equal(c.grossSpreadPerWorker,3200);
+ a.usBill='70';a.usCosts='0';a.usWorkers='3';
+ c=calculateCameroon(workerScenario(a).assumptions);assert.equal(c.grossSpreadPerWorker,4000);assert.equal(c.grossSpread,12000);assert.equal(c.contribution,12000);
+ a.workerUs='0';c=calculateCameroon(workerScenario(a).assumptions);assert.equal(c.grossSpreadPerWorker,5600);assert.equal(c.additionalCosts,null);
+ assert.equal(a.usBill,'70');assert.equal(a.camBill,'45');
+ assert.deepEqual(mergeCameroonDefaults(workspace),workspace);
+ assert.ok(validData({...workspace,candidates:[],clients:[],placements:[],tasks:[]}));
 });
