@@ -10,5 +10,9 @@ export function calculateCompanyTakeHome(a){
  const names={revenue:'client revenue / exchange rate',workerPay:'worker pay / exchange rate',employer:'employer charges (confirm CNPS risk group for Cameroon)',insurance:'company-paid insurance premium and share',costs:'additional operating expenses',tax:'company tax provision'};
  const missing=Object.entries(names).filter(([key])=>values[key]===null).map(([,label])=>label);
  const net=missing.length?null:revenue-workerPay-employer-insurance-costs-tax,workers=amount(assumptions.camWorkers);
- return {isUS,...values,net,perWorker:net!==null&&workers!==null&&workers>0?net/workers:null,missing};
+ // A subtotal deducts known expenses only; it never changes unknown assumptions to zero.
+ const components=p.automatic||{};
+ const knownEmployer=employer!==null?employer:!isUS&&workers!==null&&Number.isInteger(workers)?['employerPension','employerFamily','employerInjury','employerHousing','employerEmployment'].reduce((sum,key)=>sum+(components[key]??0),0)*workers:null;
+ const subtotal=spread===null?null:spread-[knownEmployer,insurance,costs,tax].filter(value=>value!==null).reduce((sum,value)=>sum+value,0);
+ return {isUS,...values,net,knownEmployer,subtotal,subtotalPerWorker:subtotal!==null&&workers!==null&&workers>0?subtotal/workers:null,perWorker:net!==null&&workers!==null&&workers>0?net/workers:null,missing};
 }
