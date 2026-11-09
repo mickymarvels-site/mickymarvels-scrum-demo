@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {calculateCameroonEmployee,progressiveIrpp,ravMonthly,localDevelopmentMonthly} from '../staffing/cameroon-payroll.mjs';
+import {calculateCameroonHealth,calculateCameroonEmployee,progressiveIrpp,ravMonthly,localDevelopmentMonthly} from '../staffing/cameroon-payroll.mjs';
 import {calculateWorkerPayroll,validAssumptions} from '../staffing/payroll.mjs';
 import {mergeCameroonDefaults,calculateCameroon,workerScenario} from '../staffing/scenarios.mjs';
 const a=overrides=>mergeCameroonDefaults({assumptions:{workerUs:'0',camUsdXaf:'600',camRiskRate:'1.75',camHealthWorkerXaf:'0',camHealthCompanyXaf:'0',camCosts:'0',...overrides}}).assumptions;
@@ -68,4 +68,31 @@ test('base overrides, missing FX, unsupported year and blank insurance do not si
 test('Cameroon enums and numeric amounts are validated before storage',()=>{
  assert.ok(validAssumptions(a({})));
  for(const bad of [{camTaxMode:'9'},{camFamilyRate:'99'},{camRiskRate:'0'},{camEmployerXaf:'-1'},{camCnpsBaseXaf:'Infinity'}])assert.equal(validAssumptions(a(bad)),false);
+});
+
+test('custom insurance premium splits between worker and company without double-counting',()=>{
+ const inputs=a({camHealthMode:'0',camHealthPremiumXaf:'75000',camHealthEmployerShare:'60'});
+ assert.deepEqual(calculateCameroonHealth(inputs),{worker:30000,company:45000,source:'premium split'});
+ const p=payroll(inputs);near(p.monthly.net,725999.1666666667);
+ assert.equal(p.companyHealthTeamMonthly,45000);assert.equal(p.companyContributionTeamMonthly,3190200);
+ near(p.biweekly.net,p.monthly.net*12/26);
+ for(const share of ['0','100','33.33']){const h=calculateCameroonHealth({...inputs,camHealthEmployerShare:share});near(h.worker+h.company,75000);near(h.company,75000*Number(share)/100);}
+});
+test('insurance unknowns remain unknown and only explicit zero premium means no cost',()=>{
+ const inputs=a({camHealthMode:'0',camHealthPremiumXaf:'75000',camHealthEmployerShare:'60'});
+ for(const overrides of [{camHealthPremiumXaf:''},{camHealthEmployerShare:''},{camHealthEmployerShare:'101'},{camHealthPremiumXaf:'-1'}]){
+  const h=calculateCameroonHealth({...inputs,...overrides});assert.equal(h.worker,null);assert.equal(h.company,null);
+ }
+ assert.deepEqual(calculateCameroonHealth({...inputs,camHealthPremiumXaf:'0',camHealthEmployerShare:''}),{worker:0,company:0,source:'premium split'});
+ for(const bad of [{camHealthEmployerShare:'101'},{camHealthEmployerShare:'-1'},{camHealthMode:'2'}])assert.equal(validAssumptions({...inputs,...bad}),false);
+});
+test('legacy insurance migration preserves separate amounts, explicit zero and all records',()=>{
+ for(const saved of [{camHealthWorkerXaf:'0',camHealthCompanyXaf:'25000'},{camHealthWorkerXaf:'',camHealthCompanyXaf:'0'}]){
+  const old={candidates:[{id:'existing',name:'Existing'}],clients:[],placements:[],tasks:[],assumptions:saved},before=structuredClone(old),merged=mergeCameroonDefaults(old);
+  assert.deepEqual(old,before);assert.deepEqual(merged.candidates,old.candidates);assert.equal(merged.assumptions.camHealthMode,'1');
+  for(const [key,value] of Object.entries(saved))assert.equal(merged.assumptions[key],value);
+  assert.deepEqual(mergeCameroonDefaults(merged),merged);
+ }
+ const fresh=mergeCameroonDefaults({assumptions:{}}).assumptions;
+ assert.equal(fresh.camHealthMode,'0');assert.equal(calculateCameroonHealth(fresh).worker,null);
 });

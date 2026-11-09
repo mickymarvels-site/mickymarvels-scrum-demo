@@ -1,4 +1,4 @@
-import {cameroonPayrollDefaults,calculateCameroonEmployee} from './cameroon-payroll.mjs';
+import {cameroonPayrollDefaults,calculateCameroonEmployee,calculateCameroonHealth} from './cameroon-payroll.mjs';
 import {stateTaxData} from './state-tax-data.mjs';
 export const US_STATES=Object.entries(stateTaxData).map(([code,s])=>[code,s.name]).sort((a,b)=>a[1].localeCompare(b[1]));
 export const FILING_STATUSES=[['single','Single / married filing separately'],['married','Married filing jointly'],['head_of_household','Head of household']];
@@ -9,7 +9,8 @@ export function validAssumptions(a){
   if(typeof v!=='string'||v.length>=100)return false;
   if(['usState','usOverrideState'].includes(key))return v===''||Object.hasOwn(stateTaxData,v);
   if(['usFiling','usOverrideFiling'].includes(key))return v===''||FILING_STATUSES.some(([id])=>id===v);
-  if(key==='camTaxMode')return ['0','1'].includes(v);
+  if(key==='camHealthEmployerShare')return v===''||(v.trim()!==''&&Number.isFinite(+v)&&+v>=0&&+v<=100);
+  if(['camTaxMode','camHealthMode'].includes(key))return ['0','1'].includes(v);
   if(key==='camFamilyRate')return ['7','5.65','3.7',''].includes(v);
   if(key==='camRiskRate')return ['1.75','2.5','5',''].includes(v);
   if(key==='usW4Multiple')return ['0','1',''].includes(v);
@@ -67,7 +68,7 @@ export function calculateWorkerPayroll(a,scenario){
   if(monthly.net!==null&&monthly.net<0)notes.push('Deductions exceed gross pay; review the inputs before using this estimate.');
   return {...empty,state,monthly,biweekly:scale(monthly,12/26),notes,companyHealthMonthly:0,companyHealthTeamMonthly:0,companyContributionTeamMonthly:scenario.contribution};
  }
- const rate=number(a.camUsdXaf),insurance=number(a.camHealthWorkerXaf),companyHealth=number(a.camHealthCompanyXaf);
+ const rate=number(a.camUsdXaf),health=calculateCameroonHealth(a),insurance=health.worker,companyHealth=health.company;
  const converted=rate!==null&&rate>0?gross*rate:null,automatic=calculateCameroonEmployee(converted,a),manual=a.camTaxMode==='1';
  const tax=manual?number(a.camTaxXaf):a.camTaxMode==='0'?automatic.automaticDeductions:null;
  const monthly={gross:converted,manualTax:manual?tax:null,irpp:automatic.irpp,cac:automatic.cac,workerPension:automatic.workerPension,workerHousing:automatic.workerHousing,rav:automatic.rav,tdl:automatic.tdl,workerInsurance:insurance,taxTotal:tax,net:converted!==null&&tax!==null&&insurance!==null?converted-tax-insurance:null};

@@ -36,3 +36,11 @@ test('tax states, filing choices and manual Cameroon insurance save and reload w
  assert.equal((await h(request('PUT',{data:wrong,etag:reloaded.etag},cookie))).status,400);
  assert.equal((await h(request('PUT',{data:saved,etag:null},cookie))).status,409);
 });
+
+test('custom insurance quote and share persist through authenticated storage',async()=>{
+ const {mergeCameroonDefaults}=await import('../staffing/scenarios.mjs');
+ const h=fixture(),cookie=await login(h),saved=mergeCameroonDefaults({...data,assumptions:{camHealthMode:'0',camHealthPremiumXaf:'75000',camHealthEmployerShare:'60'}});
+ assert.equal((await h(request('PUT',{data:saved,etag:null},cookie))).status,200);
+ const loaded=await(await h(request('GET',undefined,cookie))).json();assert.deepEqual(loaded.data,saved);
+ assert.equal((await h(request('PUT',{data:{...saved,assumptions:{...saved.assumptions,camHealthEmployerShare:'101'}},etag:loaded.etag},cookie))).status,400);
+});

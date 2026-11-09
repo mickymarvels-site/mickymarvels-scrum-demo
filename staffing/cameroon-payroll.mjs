@@ -2,7 +2,7 @@
 // Sources and scope are documented in README; not a filing or payroll execution service.
 export const CAMEROON_TAX_SOURCE='https://impots.cm/sites/default/files/documents/CODE%20GENERAL%20DES%20IMPOTS%202026%20DGI%20VERSION%20ANGLAISE.pdf';
 export const CAMEROON_CNPS_SOURCE='https://www.cnps.cm/images/documentutile/annuairestat2025.pdf';
-export const cameroonPayrollDefaults=Object.freeze({camTaxMode:'0',camTaxYear:'2026',camFamilyRate:'7',camRiskRate:'',camBasicXaf:'',camCnpsBaseXaf:'',camEmployerXaf:''});
+export const cameroonPayrollDefaults=Object.freeze({camTaxMode:'0',camTaxYear:'2026',camFamilyRate:'7',camRiskRate:'',camBasicXaf:'',camCnpsBaseXaf:'',camEmployerXaf:'',camHealthMode:'0',camHealthPremiumXaf:'',camHealthEmployerShare:''});
 const amount=v=>typeof v==='string'&&v.trim()!==''&&Number.isFinite(+v)&&+v>=0?+v:null;
 export function progressiveIrpp(annualTaxable){
  const bands=[[2000000,.10],[3000000,.15],[5000000,.25],[Infinity,.35]];
@@ -33,4 +33,14 @@ export function calculateCameroonEmployee(gross,a){
  const employerTotal=override!==null?override:[employerPension,employerFamily,employerInjury].includes(null)?null:employerPension+employerFamily+employerInjury+employerHousing+employerEmployment;
  const automaticDeductions=[irpp,cac,pension,tdl].includes(null)?null:irpp+cac+pension+workerHousing+rav+tdl;
  return {irpp,cac,workerPension:pension,workerHousing,rav,tdl,automaticDeductions,employerPension,employerFamily,employerInjury,employerHousing,employerEmployment,employerTotal,annualTaxable,professionalDeduction};
+}
+
+export function calculateCameroonHealth(a){
+ if(a.camHealthMode==='1')return {worker:amount(a.camHealthWorkerXaf),company:amount(a.camHealthCompanyXaf),source:'saved amounts'};
+ if(a.camHealthMode!=='0')return {worker:null,company:null,source:'unknown'};
+ const premium=amount(a.camHealthPremiumXaf),share=amount(a.camHealthEmployerShare);
+ if(premium===0)return {worker:0,company:0,source:'premium split'};
+ if(premium===null||share===null||share>100)return {worker:null,company:null,source:'premium split'};
+ const company=premium*share/100;
+ return {worker:premium-company,company,source:'premium split'};
 }
