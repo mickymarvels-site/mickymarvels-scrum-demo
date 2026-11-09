@@ -8,6 +8,8 @@ export function workerScenario(a){
 }
 export function mergeCameroonDefaults(workspace) {
   const assumptions = {...workspace.assumptions};
+  // Preserve existing manual totals, including an explicit zero, on older workspaces.
+  if (!Object.hasOwn(assumptions,'camTaxMode') && typeof assumptions.camTaxXaf==='string' && assumptions.camTaxXaf!=='') assumptions.camTaxMode='1';
   for (const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults,...payrollDefaults})) {
     if (!Object.hasOwn(assumptions,key)) assumptions[key] = value;
   }

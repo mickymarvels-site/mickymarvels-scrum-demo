@@ -57,7 +57,7 @@ test('state override is tied to state and filing status, and explicitly entered 
  assert.equal(calculate({...a,usStateOverride:''}).monthly.state,null);
 });
 test('Cameroon manual taxes and split health insurance affect the correct party',()=>{
- const a=assumptions({workerUs:'0',camUsdXaf:'600',camTaxXaf:'50000',camHealthWorkerXaf:'10000',camHealthCompanyXaf:'25000',camWorkers:'2',camCosts:'0'}),p=calculate(a);
+ const a=assumptions({workerUs:'0',camUsdXaf:'600',camTaxXaf:'50000',camHealthWorkerXaf:'10000',camHealthCompanyXaf:'25000',camWorkers:'2',camCosts:'0',camEmployerXaf:'0'}),p=calculate(a);
  assert.equal(p.monthly.gross,960000);assert.equal(p.monthly.net,900000);
  near(p.biweekly.net,900000*12/26);assert.equal(p.companyHealthTeamMonthly,50000);assert.equal(p.companyContributionTeamMonthly,6670000);
  // Worker deductions do not increase gross spread. Company insurance is a separate company expense.

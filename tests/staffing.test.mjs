@@ -29,7 +29,7 @@ test('legacy workspace and Cameroon additions round-trip through authenticated s
 test('tax states, filing choices and manual Cameroon insurance save and reload without losing legacy records',async()=>{
  const {mergeCameroonDefaults}=await import('../staffing/scenarios.mjs');
  const h=fixture(),cookie=await login(h);
- const saved=mergeCameroonDefaults({candidates:[{id:'c1',name:'Existing'}],clients:[],placements:[],tasks:[],assumptions:{usState:'TX',usFiling:'married',camHealthWorkerXaf:'0',camHealthCompanyXaf:'35000',camTaxXaf:'25000',usStateOverride:'0',usOverrideState:'TX',usOverrideFiling:'married'}});
+ const saved=mergeCameroonDefaults({candidates:[{id:'c1',name:'Existing'}],clients:[],placements:[],tasks:[],assumptions:{usState:'TX',usFiling:'married',camTaxMode:'0',camTaxYear:'2026',camRiskRate:'2.5',camFamilyRate:'7',camHealthWorkerXaf:'0',camHealthCompanyXaf:'35000',camTaxXaf:'25000',usStateOverride:'0',usOverrideState:'TX',usOverrideFiling:'married'}});
  const r=await h(request('PUT',{data:saved,etag:null},cookie));assert.equal(r.status,200);
  const reloaded=await(await h(request('GET',undefined,cookie))).json();assert.deepEqual(reloaded.data,saved);
  const wrong={...saved,assumptions:{...saved.assumptions,usState:'INVALID'}};

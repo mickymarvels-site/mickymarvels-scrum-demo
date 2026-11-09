@@ -1,13 +1,17 @@
+import {cameroonPayrollDefaults,calculateCameroonEmployee} from './cameroon-payroll.mjs';
 import {stateTaxData} from './state-tax-data.mjs';
 export const US_STATES=Object.entries(stateTaxData).map(([code,s])=>[code,s.name]).sort((a,b)=>a[1].localeCompare(b[1]));
 export const FILING_STATUSES=[['single','Single / married filing separately'],['married','Married filing jointly'],['head_of_household','Head of household']];
-export const payrollDefaults=Object.freeze({usState:'',usTaxYear:'2026',usFiling:'single',usW4Multiple:'0',usTaxCredits:'0',usOtherIncome:'0',usDeductions:'0',usExtraTax:'0',usStateOverride:'',usOverrideState:'',usOverrideFiling:'',camTaxXaf:'',camHealthWorkerXaf:'',camHealthCompanyXaf:''});
+export const payrollDefaults=Object.freeze({usState:'',usTaxYear:'2026',usFiling:'single',usW4Multiple:'0',usTaxCredits:'0',usOtherIncome:'0',usDeductions:'0',usExtraTax:'0',usStateOverride:'',usOverrideState:'',usOverrideFiling:'',camTaxXaf:'',camHealthWorkerXaf:'',camHealthCompanyXaf:'',...cameroonPayrollDefaults});
 export function validAssumptions(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).length>64)return false;
  return Object.entries(a).every(([key,v])=>{
   if(typeof v!=='string'||v.length>=100)return false;
   if(['usState','usOverrideState'].includes(key))return v===''||Object.hasOwn(stateTaxData,v);
   if(['usFiling','usOverrideFiling'].includes(key))return v===''||FILING_STATUSES.some(([id])=>id===v);
+  if(key==='camTaxMode')return ['0','1'].includes(v);
+  if(key==='camFamilyRate')return ['7','5.65','3.7',''].includes(v);
+  if(key==='camRiskRate')return ['1.75','2.5','5',''].includes(v);
   if(key==='usW4Multiple')return ['0','1',''].includes(v);
   return v===''||(v.trim()!==''&&Number.isFinite(Number(v))&&Number(v)>=0);
  });
@@ -45,7 +49,7 @@ export function stateTaxEstimate2026(annual,code,filing){
 }
 export function calculateWorkerPayroll(a,scenario){
  const isUS=a.workerUs==='1',gross=scenario.monthlyPayPerWorker,workers=number(isUS?a.usWorkers:a.camWorkers);
- const empty={grossMonthly:gross,monthly:null,biweekly:null,companyHealthMonthly:null,companyHealthTeamMonthly:null,companyContributionTeamMonthly:null,notes:[],state:null};
+ const empty={grossMonthly:gross,monthly:null,biweekly:null,companyHealthMonthly:null,companyHealthTeamMonthly:null,companyChargesTeamMonthly:null,companyContributionTeamMonthly:null,notes:[],state:null};
  if(gross===null)return empty;
  if(isUS){
   const state=stateTaxData[a.usState];
@@ -63,12 +67,22 @@ export function calculateWorkerPayroll(a,scenario){
   if(monthly.net!==null&&monthly.net<0)notes.push('Deductions exceed gross pay; review the inputs before using this estimate.');
   return {...empty,state,monthly,biweekly:scale(monthly,12/26),notes,companyHealthMonthly:0,companyHealthTeamMonthly:0,companyContributionTeamMonthly:scenario.contribution};
  }
- const rate=number(a.camUsdXaf),tax=number(a.camTaxXaf),insurance=number(a.camHealthWorkerXaf),companyHealth=number(a.camHealthCompanyXaf);
- const converted=rate!==null&&rate>0?gross*rate:null;
- const monthly={gross:converted,manualTax:tax,workerInsurance:insurance,taxTotal:tax,net:converted!==null&&tax!==null&&insurance!==null?converted-tax-insurance:null};
- const notes=['Cameroon deductions are manual monthly XAF amounts per worker. Confirm local employment, tax, CNPS/social contributions and insurance obligations with a Cameroon payroll adviser. IRS rules do not determine these obligations. Blank means unknown; enter an explicit 0 when confirmed. Insurance is treated as an after-tax deduction.'];
+ const rate=number(a.camUsdXaf),insurance=number(a.camHealthWorkerXaf),companyHealth=number(a.camHealthCompanyXaf);
+ const converted=rate!==null&&rate>0?gross*rate:null,automatic=calculateCameroonEmployee(converted,a),manual=a.camTaxMode==='1';
+ const tax=manual?number(a.camTaxXaf):a.camTaxMode==='0'?automatic.automaticDeductions:null;
+ const monthly={gross:converted,manualTax:manual?tax:null,irpp:automatic.irpp,cac:automatic.cac,workerPension:automatic.workerPension,workerHousing:automatic.workerHousing,rav:automatic.rav,tdl:automatic.tdl,workerInsurance:insurance,taxTotal:tax,net:converted!==null&&tax!==null&&insurance!==null?converted-tax-insurance:null};
+ const notes=['2026 salaried-employee planning model, not a contractor calculation or payroll filing. Gross USD pay is converted using your saved XAF rate; the model assumes ordinary taxable cash wages throughout the year. Benefits, special exemptions and actual pay-period rounding require local review.',
+ 'IRPP uses annual gross less 30% professional expenses (maximum 4,800,000 XAF/year), compulsory worker pension and the 500,000 XAF annual allowance. Progressive bands are 10%, 15%, 25%, 35%; CAC is 10% of IRPP. Gross below 62,000 XAF/month is IRPP-exempt.',
+ 'CNPS pension is 4.2% worker plus 4.2% employer, each capped at a 750,000 XAF monthly base. Family contributions use the selected scheme and the same cap; employer work-injury charges use the uncapped CNPS base and selected risk group. Confirm the actual contribution salary and CNPS classification.',
+ 'Ordinary employee levies include CFC 1%, monthly RAV and annual TDL divided by 12. Employer CFC 1.5% and FNE 1% are separate costs. Exemptions and special categories are not modeled; use verified manual overrides where applicable.',
+ 'Basic salary and CNPS base default to gross converted pay unless you enter an override. Health insurance remains a separate, after-tax customizable amount; it is not replaced by CNPS. Blank costs remain unknown.',
+ manual?'Your saved manual worker deduction replaces the entire automatic worker-tax/social total; the automatic breakdown is not added again.':'Using the automatic worker deduction estimate. Switch to manual mode to use a verified total.',
+ 'Confirm local employment/contracting, registration, insurance, remittance obligations and client approval before payroll. IRS rules do not determine Cameroon obligations.'];
+ if(a.camTaxYear!=='2026')notes.push('Automatic Cameroon calculations support 2026 only; other years remain unknown.');
+ if(a.camRiskRate==='')notes.push('Select the confirmed CNPS work-injury risk group or enter a verified employer-charge override to calculate employer totals.');
  if(monthly.net!==null&&monthly.net<0)notes.push('Deductions exceed gross pay; review the inputs.');
  const companyHealthTeamMonthly=companyHealth!==null&&workers!==null&&Number.isInteger(workers)?companyHealth*workers:null;
- return {...empty,monthly,biweekly:scale(monthly,12/26),companyHealthMonthly:companyHealth,companyHealthTeamMonthly,companyContributionTeamMonthly:scenario.contribution!==null&&rate!==null&&rate>0&&companyHealthTeamMonthly!==null?scenario.contribution*rate-companyHealthTeamMonthly:null,notes};
+ const companyChargesTeamMonthly=automatic.employerTotal!==null&&workers!==null&&Number.isInteger(workers)?automatic.employerTotal*workers:null;
+ return {...empty,monthly,biweekly:scale(monthly,12/26),automatic,manual,companyChargesTeamMonthly,companyHealthMonthly:companyHealth,companyHealthTeamMonthly,companyContributionTeamMonthly:scenario.contribution!==null&&rate!==null&&rate>0&&companyHealthTeamMonthly!==null&&companyChargesTeamMonthly!==null?scenario.contribution*rate-companyHealthTeamMonthly-companyChargesTeamMonthly:null,notes};
 }
 function scale(object,factor){return Object.fromEntries(Object.entries(object).map(([key,value])=>[key,value===null?null:value*factor]));}
