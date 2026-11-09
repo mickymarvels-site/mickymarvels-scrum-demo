@@ -1,7 +1,7 @@
 import {payrollDefaults} from './payroll.mjs';
 // Flat string assumptions share the existing authenticated workspace save contract.
-export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:'',camUsdXaf:''});
-export const workerDefaults=Object.freeze({workerUs:'0',usBill:'65',usPay:'45',usHours:'160',usWorkers:'1',usCosts:''});
+export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:'',camUsdXaf:'',camCompanyTax:''});
+export const workerDefaults=Object.freeze({workerUs:'0',usBill:'65',usPay:'45',usHours:'160',usWorkers:'1',usCosts:'',usEmployerCosts:'',usCompanyTax:''});
 export function workerScenario(a){
   const isUS=a.workerUs==='1';
   return {isUS,assumptions:isUS?{camBill:a.usBill,camPay:a.usPay,camHours:a.usHours,camWorkers:a.usWorkers,camCosts:a.usCosts,camUsdXaf:a.camUsdXaf}:a};

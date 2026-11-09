@@ -61,7 +61,7 @@ export function calculateWorkerPayroll(a,scenario){
   const stateMonthly=state&&FILING_STATUSES.some(([id])=>id===a.usFiling)?(override!==null?override:stateTaxEstimate2026(annual,a.usState,a.usFiling)===null?null:stateTaxEstimate2026(annual,a.usState,a.usFiling)/12):null;
   if(!state)notes.push('Choose the state in which the worker works and resides to estimate state income tax.');
   if(state){notes.push(...(state.disclaimer||[]));if(stateMonthly===null)notes.push('Automatic state amount is unverified for this selection. Enter a verified monthly state withholding amount to calculate take-home.');}
-  if(override!==null&&state)notes.push('Using your manually entered monthly state withholding amount instead of the automatic estimate.');
+  if(override!==null&&state)notes.push('Using Micky’s manually entered monthly state withholding amount instead of the automatic estimate.');
   const monthly={gross,federal:federal===null?null:federal/12,state:stateMonthly,socialSecurity,medicare,workerInsurance:0};
   monthly.taxTotal=monthly.federal!==null&&stateMonthly!==null?monthly.federal+stateMonthly+socialSecurity+medicare:null;
   monthly.net=monthly.taxTotal===null?null:gross-monthly.taxTotal;
@@ -72,12 +72,12 @@ export function calculateWorkerPayroll(a,scenario){
  const converted=rate!==null&&rate>0?gross*rate:null,automatic=calculateCameroonEmployee(converted,a),manual=a.camTaxMode==='1';
  const tax=manual?number(a.camTaxXaf):a.camTaxMode==='0'?automatic.automaticDeductions:null;
  const monthly={gross:converted,manualTax:manual?tax:null,irpp:automatic.irpp,cac:automatic.cac,workerPension:automatic.workerPension,workerHousing:automatic.workerHousing,rav:automatic.rav,tdl:automatic.tdl,workerInsurance:insurance,taxTotal:tax,net:converted!==null&&tax!==null&&insurance!==null?converted-tax-insurance:null};
- const notes=['2026 salaried-employee planning model, not a contractor calculation or payroll filing. Gross USD pay is converted using your saved XAF rate; the model assumes ordinary taxable cash wages throughout the year. Benefits, special exemptions and actual pay-period rounding require local review.',
+ const notes=['2026 salaried-employee planning model, not a contractor calculation or payroll filing. Gross USD pay is converted using Micky’s saved XAF rate; the model assumes ordinary taxable cash wages throughout the year. Benefits, special exemptions and actual pay-period rounding require local review.',
  'IRPP uses annual gross less 30% professional expenses (maximum 4,800,000 XAF/year), compulsory worker pension and the 500,000 XAF annual allowance. Progressive bands are 10%, 15%, 25%, 35%; CAC is 10% of IRPP. Gross below 62,000 XAF/month is IRPP-exempt.',
  'CNPS pension is 4.2% worker plus 4.2% employer, each capped at a 750,000 XAF monthly base. Family contributions use the selected scheme and the same cap; employer work-injury charges use the uncapped CNPS base and selected risk group. Confirm the actual contribution salary and CNPS classification.',
  'Ordinary employee levies include CFC 1%, monthly RAV and annual TDL divided by 12. Employer CFC 1.5% and FNE 1% are separate costs. Exemptions and special categories are not modeled; use verified manual overrides where applicable.',
  'Basic salary and CNPS base default to gross converted pay unless you enter an override. Health insurance remains a separate, after-tax customizable amount; it is not replaced by CNPS. Blank costs remain unknown.',
- manual?'Your saved manual worker deduction replaces the entire automatic worker-tax/social total; the automatic breakdown is not added again.':'Using the automatic worker deduction estimate. Switch to manual mode to use a verified total.',
+ manual?'Micky’s saved manual worker deduction replaces the entire automatic worker-tax/social total; the automatic breakdown is not added again.':'Using the automatic worker deduction estimate. Switch to manual mode to use a verified total.',
  'Confirm local employment/contracting, registration, insurance, remittance obligations and client approval before payroll. IRS rules do not determine Cameroon obligations.'];
  if(a.camTaxYear!=='2026')notes.push('Automatic Cameroon calculations support 2026 only; other years remain unknown.');
  if(a.camRiskRate==='')notes.push('Select the confirmed CNPS work-injury risk group or enter a verified employer-charge override to calculate employer totals.');
