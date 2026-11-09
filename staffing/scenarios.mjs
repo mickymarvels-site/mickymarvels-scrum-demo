@@ -1,5 +1,5 @@
 // Flat string assumptions share the existing authenticated workspace save contract.
-export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:''});
+export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:'',camUsdXaf:''});
 export function mergeCameroonDefaults(workspace) {
   const assumptions = {...workspace.assumptions};
   for (const [key,value] of Object.entries(cameroonDefaults)) {
@@ -10,12 +10,19 @@ export function mergeCameroonDefaults(workspace) {
 const amount = value => typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 export function calculateCameroon(a) {
   const [bill,pay,hours,workers,costs] = ['camBill','camPay','camHours','camWorkers','camCosts'].map(key=>amount(a[key]));
+  const exchangeRate=amount(a.camUsdXaf);
+  const fxKnown=exchangeRate !== null && exchangeRate > 0;
+  const monthlyPayPerWorker=pay !== null && hours !== null ? pay*hours : null;
+  const totalPay=monthlyPayPerWorker !== null && workers !== null && Number.isInteger(workers) ? monthlyPayPerWorker*workers : null;
   const ratesKnown = bill !== null && pay !== null;
   const baseKnown = ratesKnown && hours !== null && workers !== null && Number.isInteger(workers);
   const revenue = baseKnown ? bill * hours * workers : null;
   const workerPay = baseKnown ? pay * hours * workers : null;
   const grossSpread = baseKnown ? revenue - workerPay : null;
-  return {revenue,workerPay,hourlySpread:ratesKnown ? bill-pay : null,grossSpread,
+  return {revenue,workerPay,exchangeRate:fxKnown?exchangeRate:null,
+    hourlyPayXaf:fxKnown && pay !== null ? pay*exchangeRate : null,
+    monthlyPayPerWorkerXaf:fxKnown && monthlyPayPerWorker !== null ? monthlyPayPerWorker*exchangeRate : null,
+    monthlyTeamPayXaf:fxKnown && totalPay !== null ? totalPay*exchangeRate : null,hourlySpread:ratesKnown ? bill-pay : null,grossSpread,
     grossMargin:baseKnown && revenue > 0 ? grossSpread/revenue*100 : null,
     additionalCosts:costs,contribution:grossSpread !== null && costs !== null ? grossSpread-costs : null};
 }

@@ -44,3 +44,24 @@ test('partial saved Cameroon scenario retains explicit zero and intentionally bl
  const merged=mergeCameroonDefaults({assumptions:{camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'}});
  assert.deepEqual(merged.assumptions,{...cameroonDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
 });
+
+test('USD to XAF pay converts hourly, per worker and whole-team amounts without changing USD estimates',()=>{
+ const a={...cameroonDefaults,camUsdXaf:'600',camWorkers:'2'};
+ const c=calculateCameroon(a);
+ assert.equal(c.hourlyPayXaf,6000);assert.equal(c.monthlyPayPerWorkerXaf,960000);assert.equal(c.monthlyTeamPayXaf,1920000);
+ assert.equal(c.grossSpread,11200);assert.equal(c.additionalCosts,null);
+ assert.equal(calculateCameroon({...a,camUsdXaf:'587.9'}).monthlyPayPerWorkerXaf,940640);
+ assert.equal(calculateCameroon({...a,camPay:'0'}).monthlyTeamPayXaf,0);
+ assert.equal(calculateCameroon({...a,camBill:''}).monthlyTeamPayXaf,1920000);
+});
+test('unknown and invalid exchange rates cannot imply zero converted pay',()=>{
+ for(const rate of ['',undefined,' ','0','-1','Infinity','bad']){
+  const c=calculateCameroon({...cameroonDefaults,camUsdXaf:rate});
+  assert.equal(c.hourlyPayXaf,null);assert.equal(c.monthlyPayPerWorkerXaf,null);assert.equal(c.monthlyTeamPayXaf,null);
+ }
+ const old=mergeCameroonDefaults({assumptions:{...cameroonDefaults,camUsdXaf:'590.25'}});
+ assert.equal(old.assumptions.camUsdXaf,'590.25');
+ const legacy=mergeCameroonDefaults({assumptions:{camPay:'12'}});
+ assert.equal(legacy.assumptions.camUsdXaf,'');assert.equal(legacy.assumptions.camPay,'12');
+ assert.ok(validData({...legacy,candidates:[],clients:[],placements:[],tasks:[]}));
+});

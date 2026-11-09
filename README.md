@@ -72,3 +72,5 @@ The separate **Cameroon Team** tab defaults to $45/hour client billing, $10/hour
 Edit inputs and select **Save changes** to persist through the existing authenticated Function/Blobs workspace. Missing Cameroon assumption fields are merged on load without replacing existing values (including blanks or zeros), records, or US model assumptions. They are included in the next explicit save; loading alone does not write to storage. Existing conflict detection still protects concurrent saves.
 
 `npm test` includes default calculation, team scaling, unknown-versus-zero cost, loss/zero-revenue, immutable legacy-merge, and authenticated save/reload compatibility checks. Tests use isolated fixtures and never modify live workspace records.
+
+Cameroon Team also shows hourly, monthly per-worker, and monthly whole-team pay in Central African CFA francs (XAF). Enter **XAF per 1 USD**, then Save changes. The rate starts unknown, is stored with scenario assumptions, and is not a live market quote. Converted figures are rounded to whole CFA francs for display; transfer fees are excluded. Existing USD margin calculations are unchanged.
