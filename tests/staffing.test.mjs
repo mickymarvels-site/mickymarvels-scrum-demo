@@ -52,3 +52,18 @@ test('owner tax election, mode and income assumptions persist with all legacy re
  assert.deepEqual((await(await h(request('GET',undefined,cookie))).json()).data,saved);
  assert.equal((await h(request('PUT',{data:{...saved,assumptions:{...saved.assumptions,ownerTreatment:'unknown'}},etag:'1'},cookie))).status,400);
 });
+
+test('linked candidate profiles and separate financial assumptions save across devices without record loss',async()=>{
+ const {mergeCameroonDefaults}=await import('../staffing/scenarios.mjs');
+ const {ensureCandidateProfile,setProfileAssumption}=await import('../staffing/profiles.mjs');
+ const h=fixture(),cookie=await login(h),saved=mergeCameroonDefaults({candidates:[{id:'a',name:'Candidate A',notes:'Original'},{id:'b',name:'Candidate B'}],clients:[{id:'cl',name:'Client'}],placements:[{id:'p',candidate:'a',client:'cl',pay:'10',bill:'45',hours:'160',status:'Active'}],tasks:[{id:'t',name:'Follow up',candidate:'a',placement:'p'}],assumptions:{bill:'90',pay:'60'}});
+ ensureCandidateProfile(saved,'a').placementId='p';ensureCandidateProfile(saved,'b');setProfileAssumption(saved,'a','camPay','12');setProfileAssumption(saved,'b','camPay','15');
+ assert.equal((await h(request('PUT',{data:saved,etag:null},cookie))).status,200);
+ const first=await(await h(request('GET',undefined,cookie))).json();assert.deepEqual(first.data,saved);
+ const sibling=structuredClone(first.data.candidateProfiles.b),legacy=structuredClone(first.data.assumptions);setProfileAssumption(first.data,'a','camCosts','100');
+ assert.equal((await h(request('PUT',{data:first.data,etag:first.etag},cookie))).status,200);
+ const second=await(await h(request('GET',undefined,cookie))).json();assert.deepEqual(second.data.candidateProfiles.b,sibling);assert.deepEqual(second.data.assumptions,legacy);assert.equal(second.data.placements[0].pay,'12');assert.equal(second.data.tasks[0].candidate,'a');assert.equal(second.data.candidates[0].notes,'Original');
+ assert.equal((await h(request('PUT',{data:saved,etag:first.etag},cookie))).status,409);
+ const invalid={...second.data,candidateProfiles:{...second.data.candidateProfiles,b:{...sibling,placementId:'p'}}};
+ assert.equal((await h(request('PUT',{data:invalid,etag:second.etag},cookie))).status,400);
+});
