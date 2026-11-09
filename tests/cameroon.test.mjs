@@ -1,3 +1,4 @@
+import {payrollDefaults} from '../staffing/payroll.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {cameroonDefaults,workerDefaults,workerScenario,calculateCameroon,mergeCameroonDefaults} from '../staffing/scenarios.mjs';
@@ -37,12 +38,12 @@ test('legacy default merge is immutable, preserves records and all existing assu
  assert.deepEqual(legacy,before);
  for(const key of ['candidates','clients','placements','tasks'])assert.deepEqual(merged[key],legacy[key]);
  for(const [key,value] of Object.entries(legacy.assumptions))assert.equal(merged.assumptions[key],value);
- for(const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults}))assert.equal(merged.assumptions[key],value);
+ for(const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults,...payrollDefaults}))assert.equal(merged.assumptions[key],value);
  assert.deepEqual(mergeCameroonDefaults(merged),merged);assert.ok(validData(merged));
 });
 test('partial saved Cameroon scenario retains explicit zero and intentionally blank assumptions',()=>{
  const merged=mergeCameroonDefaults({assumptions:{camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'}});
- assert.deepEqual(merged.assumptions,{...cameroonDefaults,...workerDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
+ assert.deepEqual(merged.assumptions,{...cameroonDefaults,...workerDefaults,...payrollDefaults,camBill:'60',camPay:'',camCosts:'0',camWorkers:'0'});
 });
 
 test('USD to XAF pay converts hourly, per worker and whole-team amounts without changing USD estimates',()=>{

@@ -1,3 +1,4 @@
+import {payrollDefaults} from './payroll.mjs';
 // Flat string assumptions share the existing authenticated workspace save contract.
 export const cameroonDefaults = Object.freeze({camBill:'45',camPay:'10',camHours:'160',camWorkers:'1',camCosts:'',camUsdXaf:''});
 export const workerDefaults=Object.freeze({workerUs:'0',usBill:'65',usPay:'45',usHours:'160',usWorkers:'1',usCosts:''});
@@ -7,7 +8,7 @@ export function workerScenario(a){
 }
 export function mergeCameroonDefaults(workspace) {
   const assumptions = {...workspace.assumptions};
-  for (const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults})) {
+  for (const [key,value] of Object.entries({...cameroonDefaults,...workerDefaults,...payrollDefaults})) {
     if (!Object.hasOwn(assumptions,key)) assumptions[key] = value;
   }
   return {...workspace,assumptions};
